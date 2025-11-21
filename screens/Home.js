@@ -1,12 +1,44 @@
-import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Modal, Dimensions} from 'react-native'
-import {useCameraPermission, useCameraDevice, useSkiaFrameProcessor, Camera} from 'react-native-vision-camera';
-import React,{useEffect,useState} from 'react'
+import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Modal, Dimensions, NativeModules, NativeEventEmitter} from 'react-native'
+import {useCameraPermission, useCameraDevice, useSkiaFrameProcessor, useFrameProcessor, Camera, VisionCameraProxy} from 'react-native-vision-camera';
+import React,{useEffect,useState, useRef} from 'react'
 import {SafeAreaView} from 'react-native-safe-area-context';
+
+const { HandLandmarks}=NativeModules;
+const handLandmarksEmitter = new NativeEventEmitter(HandLandmarks);
+
+const handLandmarksPlugin = VisionCameraProxy.initFrameProcessorPlugin('handLandmarks',{});
+
+function handLandmarks(frame){
+    'worklet';
+    if(handLandmarksPlugin==null){
+        throw new Error('Failed to load frame processor plugin');
+    }
+    return handLandmarksPlugin.call(frame);
+}
 
 export default function Home() {
     const { hasPermission, requestPermission} = useCameraPermission();
     const device = useCameraDevice('back');
     const [showPermissionScreen,setShowPermissionScreen]=useState(false);
+    const [handLandmarks,setHandLandmarks] = useState(null);
+    const[isHandLandmarkerInitialized,setIsHandLandmarkerInitialized] = useState(false);
+
+    const camera = useRef(null);
+
+    useEffect(()=>{
+        initializeHandLandmarker();
+    
+        const subscription = handLandmarksEmitter.addListener(
+            'onHandLandmarksDetected',
+            (event)=>{
+                console.log("Hand landmarks detected",event);
+                setHandLandmarks(event.landmarks);
+            }
+        );
+        return()=>{
+            subscription.remove();
+        }
+    },[]);
 
     useEffect(()=>{
         if(hasPermission===false){
@@ -16,6 +48,41 @@ export default function Home() {
             setShowPermissionScreen(false);
         }
     },[hasPermission]);
+
+    const initializeHandLandmarker = async () =>{
+        try{
+            await HandLandmarks.initialize();
+            setIsHandLandmarkerInitialized(true);
+            console.log('HandLandmarker init success');
+        }catch(e){
+            console.error('Failed to init HandLandmarker',e);
+            Alert.alert('Init error','Failed to init hand detection');
+        }
+    };
+
+    const frameProcessor=useSkiaFrameProcessor((frame)=>{
+        'worklet'
+        handLandmarks(frame);
+    },[]);
+
+    const updateHandLandmarks = (landmarks) =>{
+        setHandLandmarks(landmarks);
+    };
+
+    const takeSnapshotAndDetect = async () =>{
+        if(!camera.current)return;
+        try{
+            const snapshot = await camera.current.takeSnapshot({
+                quality: 85,
+                skipMetadata:true,
+            });
+            const{HandLandmarkerModule} = require('./NativeModules');
+            const result = await HandLandmarkerModule.detectFromBase64(snapshot.base64);
+            setHandLandmarks(result);
+        }catch(e){
+            console.error('Snapshot detection error',e);
+        }
+    };
 
     const handlePermissionRequest = async () =>{
         const granted = await requestPermission();
@@ -64,15 +131,36 @@ export default function Home() {
             </View>
             <View style={styles.cameraContainer}>
                 <Camera
+                ref={camera}
                 style={styles.camera}
                 device={device}
                 isActive={true}
                 video={true}
                 audio={false}
+                frameProcessor={frameProcessor}
+                pixelFormat="yuv"
                 />
             </View>
+            <TouchableOpacity
+                style={styles.snapshotButton}
+                onPress={takeSnapshotAndDetect}
+                disabled={!isHandLandmarkerInitialized}
+            >
+                <Text style={styles.snapshotButtonText}>
+                    {isHandLandmarkerInitialized ? 'Detect hands' : 'Initializating'}
+                </Text>
+            </TouchableOpacity>
+
             <View style={styles.outputContainer}>
                 <Text style={styles.outputText}>This is where the converted output will appear</Text>
+                {handLandmarks &&(
+                    <View style={styles.landmarksContainer}>
+                        <Text style={styles.landmarksTitle}>Hand landmarks:</Text>
+                        <Text style={styles.landmarksData}>
+                            {JSON.stringify(handLandmarks,null,2)}
+                        </Text>
+                    </View>
+                )}
             </View>
         </SafeAreaView>
     )
@@ -123,6 +211,18 @@ const styles = StyleSheet.create({
     camera:{
         flex:1,
     },
+    snapshotButton:{
+        position:'absolute',
+        bottom:10,
+        alignSelf:'center',
+        backgroundColor:'#0000',
+        padding:10,
+        borderRadius:20,
+    },
+    snapshotButtonText:{
+        color:'#ffff',
+        fontWeight:'bold',
+    },
     outputContainer:{
         marginTop:30,
         width:'100%',
@@ -133,5 +233,16 @@ const styles = StyleSheet.create({
     },
     outputText:{
         paddingVertical:20,
+    },
+    landmarksContainer:{
+        width:'100%',
+        marginTop:10,
+    },
+    landmarksTitle:{
+        fontWeight:'bold',
+        marginBottom:5,
+    },
+    landmarksData:{
+        fontSize:10,
     }
 })
