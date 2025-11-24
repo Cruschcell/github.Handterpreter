@@ -1,248 +1,182 @@
-import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Modal, Dimensions, NativeModules, NativeEventEmitter} from 'react-native'
-import {useCameraPermission, useCameraDevice, useSkiaFrameProcessor, useFrameProcessor, Camera, VisionCameraProxy} from 'react-native-vision-camera';
-import React,{useEffect,useState, useRef} from 'react'
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, NativeModules, NativeEventEmitter } from 'react-native';
+import { useCameraPermission, useCameraDevice, useFrameProcessor, Camera, VisionCameraProxy } from 'react-native-vision-camera';
+import React, { useEffect, useState, useRef } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Canvas, Circle, Line, Group, vec, Paint } from "@shopify/react-native-skia";
 
-const { HandLandmarks}=NativeModules;
+const { HandLandmarks } = NativeModules;
 const handLandmarksEmitter = new NativeEventEmitter(HandLandmarks);
 
-const handLandmarksPlugin = VisionCameraProxy.initFrameProcessorPlugin('handLandmarks',{});
+const handLandmarksPlugin = VisionCameraProxy.initFrameProcessorPlugin('handLandmarks', {});
 
-function handLandmarks(frame){
-    'worklet';
-    if(handLandmarksPlugin==null){
-        throw new Error('Failed to load frame processor plugin');
-    }
-    return handLandmarksPlugin.call(frame);
-}
+const HAND_CONNECTIONS = [
+    [0, 1], [1, 2], [2, 3], [3, 4],         // Thumb
+    [0, 5], [5, 6], [6, 7], [7, 8],         // Index
+    [5, 9], [9, 13], [13, 17], [0, 17],     // Palm Base
+    [9, 10], [10, 11], [11, 12],            // Middle
+    [13, 14], [14, 15], [15, 16],           // Ring
+    [17, 18], [18, 19], [19, 20]            // Pinky
+];
 
 export default function Home() {
-    const { hasPermission, requestPermission} = useCameraPermission();
+    const { hasPermission, requestPermission } = useCameraPermission();
     const device = useCameraDevice('back');
-    const [showPermissionScreen,setShowPermissionScreen]=useState(false);
-    const [handLandmarks,setHandLandmarks] = useState(null);
-    const[isHandLandmarkerInitialized,setIsHandLandmarkerInitialized] = useState(false);
+    const [handData, setHandData] = useState([]); 
+    const [isHandLandmarkerInitialized, setIsHandLandmarkerInitialized] = useState(false);
+    
+    const PREVIEW_WIDTH = 350;
+    const PREVIEW_HEIGHT = 350;
 
     const camera = useRef(null);
 
-    useEffect(()=>{
-        initializeHandLandmarker();
-    
+    useEffect(() => {
+        const setup = async () => {
+            try {
+                await HandLandmarks.initHandLandmarker();
+                setIsHandLandmarkerInitialized(true);
+                console.log('HandLandmarker init success');
+            } catch (e) {
+                console.error('Failed to init HandLandmarker', e);
+            }
+        };
+        setup();
+
         const subscription = handLandmarksEmitter.addListener(
             'onHandLandmarksDetected',
-            (event)=>{
-                console.log("Hand landmarks detected",event);
-                setHandLandmarks(event.landmarks);
+            (event) => {
+                // Update state with new coordinates to trigger a Canvas redraw
+                setHandData(event.landmarks);
             }
         );
-        return()=>{
-            subscription.remove();
-        }
-    },[]);
+        return () => subscription.remove();
+    }, []);
 
-    useEffect(()=>{
-        if(hasPermission===false){
-            setShowPermissionScreen(true);
-        }
-        else if(hasPermission===true){
-            setShowPermissionScreen(false);
-        }
-    },[hasPermission]);
+    // 1. Frame Processor
+    const frameProcessor = useFrameProcessor((frame) => {
+        'worklet';
+        if (handLandmarksPlugin == null) return;
+        handLandmarksPlugin.call(frame);
+    }, []);
 
-    const initializeHandLandmarker = async () =>{
-        try{
-            await HandLandmarks.initialize();
-            setIsHandLandmarkerInitialized(true);
-            console.log('HandLandmarker init success');
-        }catch(e){
-            console.error('Failed to init HandLandmarker',e);
-            Alert.alert('Init error','Failed to init hand detection');
-        }
-    };
-
-    const frameProcessor=useSkiaFrameProcessor((frame)=>{
-        'worklet'
-        handLandmarks(frame);
-    },[]);
-
-    const updateHandLandmarks = (landmarks) =>{
-        setHandLandmarks(landmarks);
-    };
-
-    const takeSnapshotAndDetect = async () =>{
-        if(!camera.current)return;
-        try{
-            const snapshot = await camera.current.takeSnapshot({
-                quality: 85,
-                skipMetadata:true,
-            });
-            const{HandLandmarkerModule} = require('./NativeModules');
-            const result = await HandLandmarkerModule.detectFromBase64(snapshot.base64);
-            setHandLandmarks(result);
-        }catch(e){
-            console.error('Snapshot detection error',e);
-        }
-    };
-
-    const handlePermissionRequest = async () =>{
+    const handlePermissionRequest = async () => {
         const granted = await requestPermission();
-        if(!granted){
-            Alert.alert('Permission Required', 'Camera access is needed for this app to work',
-                [
-                    {text:'Ok',style:'default'},
-                ]
-            )
-        }
-        else{
-            Alert.alert('Permission was granted',
-                [
-                    {text:'Ok',style:'default'},
-                ]
-            )
-        }
+        if (!granted) Alert.alert('Permission Required');
     };
 
-    if(showPermissionScreen || !hasPermission){
-        return(
+    const transformPoint = (p)=>{
+        const rotatedX = 1 - p.y;
+        const rotatedY = p.x;
+        return vec(rotatedX * PREVIEW_WIDTH, rotatedY * PREVIEW_HEIGHT);
+    };
+
+    // 2. Skeleton Renderer
+    const renderSkeleton = () => {
+        if (!handData || handData.length === 0) return null;
+
+        return handData.map((hand, handIndex) => {
+            // Convert normalized coordinates (0-1) to pixel coordinates (350x350)
+            const points = hand.map(p=>transformPoint(p));            
+            return (
+                <Group key={handIndex}>
+                    <Paint color="#00FF00" strokeWidth={2} style="stroke" />
+                    {HAND_CONNECTIONS.map(([start, end], i) => (
+                        <Line
+                            key={`bone-${i}`}
+                            p1={points[start]}
+                            p2={points[end]}
+                        />
+                    ))}
+                    {points.map((p, i) => (
+                        <Circle key={`joint-${i}`} cx={p.x} cy={p.y} r={4} color="red" style="fill" />
+                    ))}
+                </Group>
+            );
+        });
+    };
+
+    if (!hasPermission) {
+        return (
             <SafeAreaView style={styles.container}>
-                <StatusBar barStyle="dark-content"/>
-                <Text style={styles.title}>Camera Permission Required</Text>
-                <Text style={styles.subText}>This app needs camera access to function</Text>
-                <TouchableOpacity style={styles.permissionBtn} onPress={handlePermissionRequest}>
-                    <Text style={styles.permissionText}>Grant Access</Text>
-                </TouchableOpacity>
+                <Text>Camera Permission Required</Text>
+                <TouchableOpacity onPress={handlePermissionRequest}><Text>Grant</Text></TouchableOpacity>
             </SafeAreaView>
         );
     }
-    if(device == null){
-        return(
-            <SafeAreaView style={styles.container}>
-                <Text>No Camera Found</Text>
-            </SafeAreaView>
-        );
-    }
+    if (device == null) return <View><Text>No Camera Device</Text></View>;
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content"/>
+            <StatusBar barStyle="dark-content" />
             <View style={styles.headerContainer}>
-                <Text style={styles.title}>Sign language interpreter</Text>
-                <Text style={styles.subText}>Point your camera at the hand signs</Text>  
+                <Text style={styles.title}>Handterpreter</Text>
+                <Text style={styles.subText}>Show me your hands!</Text>
             </View>
-            <View style={styles.cameraContainer}>
+            <View style={[styles.cameraWrapper, { width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }]}>
+                {/* LAYER 1: The Camera */}
                 <Camera
-                ref={camera}
-                style={styles.camera}
-                device={device}
-                isActive={true}
-                video={true}
-                audio={false}
-                frameProcessor={frameProcessor}
-                pixelFormat="yuv"
+                    ref={camera}
+                    style={StyleSheet.absoluteFill}
+                    device={device}
+                    isActive={true}
+                    frameProcessor={frameProcessor}
+                    pixelFormat="yuv"
                 />
+
+                {/* LAYER 2: The Overlay Canvas */}
+                <Canvas style={styles.overlay} pointerEvents="none">
+                    {renderSkeleton()}
+                </Canvas>
             </View>
-            <TouchableOpacity
-                style={styles.snapshotButton}
-                onPress={takeSnapshotAndDetect}
-                disabled={!isHandLandmarkerInitialized}
-            >
-                <Text style={styles.snapshotButtonText}>
-                    {isHandLandmarkerInitialized ? 'Detect hands' : 'Initializating'}
-                </Text>
-            </TouchableOpacity>
 
             <View style={styles.outputContainer}>
-                <Text style={styles.outputText}>This is where the converted output will appear</Text>
-                {handLandmarks &&(
-                    <View style={styles.landmarksContainer}>
-                        <Text style={styles.landmarksTitle}>Hand landmarks:</Text>
-                        <Text style={styles.landmarksData}>
-                            {JSON.stringify(handLandmarks,null,2)}
-                        </Text>
-                    </View>
-                )}
+                <Text>{isHandLandmarkerInitialized ? "System Ready" : "Initializing..."}</Text>
+                <Text>Hands detected: {handData ? handData.length : 0}</Text>
             </View>
         </SafeAreaView>
     )
 }
 
 const styles = StyleSheet.create({
-    container:{
-        flex:1,
-        backgroundColor:"#d0e0a2ff",
-        alignItems:'center',
-        paddingVertical:15,
-        paddingHorizontal:20,
+    container: {
+        flex: 1,
+        backgroundColor: "#d0e0a2ff",
+        alignItems: 'center',
+        paddingVertical: 15,
     },
-    headerContainer:{
-        marginTop:20,
-        marginBottom:20,
-        paddingHorizontal:20,
+    headerContainer: {
+        marginTop: 20,
+        marginBottom: 20,
     },
-    title:{
-        textAlign:'center',
-        marginBottom:20,
-        fontSize:40,
-        fontWeight:'bold',
+    title: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
-    subText:{
-        textAlign:'center',
-        fontSize:20,
+    subText: {
+        textAlign: 'center',
+        fontSize: 16,
     },
-    permissionBtn:{
-        padding:20,
-        margin:20,
-        alignItems:'center',
-        backgroundColor:'#ffff',
-        top:100,
-        borderRadius:20,
+    cameraWrapper: {
+        marginTop: 20,
+        borderRadius: 20,
+        overflow: 'hidden',
+        backgroundColor: 'black',
+        position: 'relative',
     },
-    permissionText:{
-        fontSize:20,
-        fontWeight:'bold',
+    overlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 10,
     },
-    cameraContainer:{
-        width:350,
-        height:350,
-        marginTop:20,
-        borderRadius:20,
-        overflow:'hidden',
-    },
-    camera:{
-        flex:1,
-    },
-    snapshotButton:{
-        position:'absolute',
-        bottom:10,
-        alignSelf:'center',
-        backgroundColor:'#0000',
-        padding:10,
-        borderRadius:20,
-    },
-    snapshotButtonText:{
-        color:'#ffff',
-        fontWeight:'bold',
-    },
-    outputContainer:{
-        marginTop:30,
-        width:'100%',
-        borderRadius:20,
-        flex:1,
-        backgroundColor:"#ffff",
-        alignItems:'center',
-    },
-    outputText:{
-        paddingVertical:20,
-    },
-    landmarksContainer:{
-        width:'100%',
-        marginTop:10,
-    },
-    landmarksTitle:{
-        fontWeight:'bold',
-        marginBottom:5,
-    },
-    landmarksData:{
-        fontSize:10,
+    outputContainer: {
+        marginTop: 30,
+        padding: 20,
+        backgroundColor: "white",
+        borderRadius: 20,
+        alignItems: 'center',
+        width: '90%'
     }
 })
