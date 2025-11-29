@@ -164,7 +164,7 @@ export default function SignUp({navigation}) {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={styles.backButton} onPress={()=>navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={()=>navigation.navigate('Welcomepage')}>
             <View style={{marginTop:6}}>
               <BackArrowIcon/>
             </View>

@@ -73,6 +73,18 @@ const Wave = () => (
 );
 
 export default function Login({navigation}) {
+  // useEffect(()=>{
+  //       const clearStorage = async () =>{
+  //       try{
+  //           await AsyncStorage.clear();
+  //           console.log('Async cleared')
+  //       } catch(e){
+  //           console.log('Async not cleared')
+  //       }
+  //       };
+  //       clearStorage();
+  //   },[]);
+
   const[username,setUsername]=useState("");
   const[password,setPassword]=useState("");
   const[showPassword,setShowPassword]=useState(false);
@@ -97,7 +109,7 @@ export default function Login({navigation}) {
       const usersJson = await AsyncStorage.getItem('users');
       const users = usersJson ? JSON.parse(usersJson):[];
       const inputValue = username.trim();
-
+    
       const user = users.find (u=>{
         const uName = u.username || "";
         const uEmail = u.email || "";
@@ -110,6 +122,8 @@ export default function Login({navigation}) {
       });
       if(user){
         console.log("Login success", user.username);
+        await AsyncStorage.setItem('currentUser', JSON.stringify(user));
+
         navigation.navigate('Home');
         setUsername("");
         setPassword("");
@@ -124,7 +138,7 @@ export default function Login({navigation}) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={()=>navigation.goBack()}>
+      <TouchableOpacity style={styles.backButton} onPress={()=>navigation.navigate('Welcomepage')}>
         <View style={{marginTop:6}}>
           <BackArrowIcon/>
         </View>
@@ -165,6 +179,13 @@ export default function Login({navigation}) {
             {showPassword ?<EyeClosedIcon/> : <EyeIcon/>}
           </TouchableOpacity>
         </View>
+        {errors.form && (
+            <View style={{ marginTop: 10, alignItems: 'center' }}>
+                <Text style={{ color: "#DA7676", fontWeight: '600' }}>
+                    {errors.form}
+                </Text>
+            </View>
+        )}
         {errors.password && (
           <Text style={styles.errorText}>{errors.password}</Text>
         )}
