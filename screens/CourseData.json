@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "title": "ASL Course 1: The Mechanics of Handshape",
+    "description": "Before you sign your first word, you need to understand your tools. This course establishes your 'signing space,' covers the manual alphabet, and teaches you how to use your dominant hand correctly.",
+    "modules": [
+      {
+        "id": "1-1",
+        "title": "The Signing Space & Dominant Hand",
+        "content": "In ASL, you have a specific 'stage' where you communicate. This is known as the Signing Box—a rectangular space extending from the top of your head to your waist, and shoulder to shoulder. Signs produced outside this box are 'shouting' or hard to read. You must also choose your Dominant Hand (usually the hand you write with). Your dominant hand does the movement, while your non-dominant hand acts as a base or support.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Insert diagram of person with dotted rectangular box drawn around upper body labeled 'The Signing Space'."
+      },
+      {
+        "id": "1-2",
+        "title": "The Manual Alphabet (A - M)",
+        "content": "Fingerspelling is the fallback for when you don't know a sign. For letters A through M, keep your hand steady near your shoulder. Do not 'bounce' your hand between letters. Pay special attention to 'A', 'S', and 'T'. These are all fist shapes, but the thumb placement changes the meaning entirely.",
+        "media_type": "video",
+        "media_placeholder_note": "TODO: Insert slow-motion video comparing thumb position of 'A' (side), 'S' (front), and 'T' (tucked)."
+      },
+      {
+        "id": "1-3",
+        "title": "The Manual Alphabet (N - Z)",
+        "content": "The second half of the alphabet introduces movement. 'J' and 'Z' draw their shapes in the air. Common mistake alert: For the letters 'P' and 'Q', your wrist must bend so your fingers point down. For 'K', your palm faces forward; for 'P', it is the same handshape, just dropped down.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Insert side-by-side comparison of 'K' (upright) and 'P' (pointing down)."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "ASL Course 2: Grammar on Your Face",
+    "description": "ASL is not just hand movements; 50% of the language is on your face. This course covers greetings and the critical 'Non-Manual Signals' (NMS) that distinguish statements from questions.",
+    "modules": [
+      {
+        "id": "2-1",
+        "title": "The Eyebrow Rule (Wh- Questions)",
+        "content": "In English, we raise our pitch at the end of a question. In ASL, we use our eyebrows. If you are asking a 'Wh-' question (Who, What, Where, When, Why), you must furrow your eyebrows down. Think of it as squinting in confusion. If you sign 'Where' with raised eyebrows, it is grammatically incorrect.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Insert photo of person signing 'Where' with eyebrows furrowed deep/down."
+      },
+      {
+        "id": "2-2",
+        "title": "The Eyebrow Rule (Yes/No Questions)",
+        "content": "If you are asking a question that can be answered with a simple 'Yes' or 'No' (e.g., 'Are you hungry?'), your eyebrows must go up. Lean your head slightly forward while raising your eyebrows to engage the listener. This replaces the question mark in written English.",
+        "media_type": "video",
+        "media_placeholder_note": "TODO: Split-screen video. Left: 'You Hungry' (Eyebrows Down/Wrong). Right: 'You Hungry?' (Eyebrows Up/Correct)."
+      },
+      {
+        "id": "2-3",
+        "title": "Essential Greetings",
+        "content": "Learn to say 'Hello,' 'Nice to meet you,' and 'See you later.' Note that 'Nice to meet you' is a compound sign. It combines 'Nice' (sliding one palm over the other) and 'Meet' (two index fingers coming together). It represents two people approaching each other.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Diagram arrows showing the sliding motion of 'Nice' transitioning into 'Meet'."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "ASL Course 3: Family & Relationships",
+    "description": "Learn to talk about your background. This course introduces the 'Gender Line' concept, which makes memorizing family signs much easier.",
+    "modules": [
+      {
+        "id": "3-1",
+        "title": "The Gender Zones",
+        "content": "ASL signs for people are often gendered based on location. The Upper Face (Forehead) is the Male Zone. The Lower Face (Chin) is the Female Zone. For example, 'Father' involves tapping the thumb to the forehead, while 'Mother' involves tapping the thumb to the chin. The handshape (an open '5' hand) remains exactly the same; only the location changes.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Face map with forehead shaded blue (Male) and chin shaded pink (Female)."
+      },
+      {
+        "id": "3-2",
+        "title": "Siblings & Generations",
+        "content": "'Brother' and 'Sister' are compound signs. 'Brother' starts at the forehead (Boy) and brings both hands together into a 'Same' shape. 'Sister' starts at the chin (Girl) and does the same. 'Grandfather' and 'Grandmother' use the same placement as Mom and Dad but 'bounce' forward two times, indicating one generation removed.",
+        "media_type": "video",
+        "media_placeholder_note": "TODO: Video profile view showing forward bouncing motion for 'Grandmother' vs stationary tap for 'Mother'."
+      },
+      {
+        "id": "3-3",
+        "title": "Relationship Status",
+        "content": "Common conversation starters include 'Single,' 'Married,' 'Divorced,' or 'Friend.' The sign for 'Married' clasps two hands together, symbolizing a bond. The sign for 'Divorced' starts with hands clasped and then separates them definitively. 'Friend' links the index fingers together, like two links in a chain.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Graphic showing the interlocked index fingers for the sign 'Friend'."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "ASL Course 4: The Time-Space Continuum",
+    "description": "How do you talk about tomorrow or yesterday? In ASL, your body is the clock. This course covers the 'Time Line' and numerical systems.",
+    "modules": [
+      {
+        "id": "4-1",
+        "title": "The ASL Timeline",
+        "content": "Imagine a line running through your body from back to front. Present: Signs done close to the body (e.g., 'Now', 'Today'). Future: Signs that move forward, away from the body (e.g., 'Tomorrow', 'Will'). Past: Signs that move backward, over the shoulder (e.g., 'Yesterday', 'Before').",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: 3D-style diagram showing arrows shooting forward (Future) and curving back over shoulder (Past)."
+      },
+      {
+        "id": "4-2",
+        "title": "Days of the Week",
+        "content": "Most days are initialized, meaning they use the handshape of the first letter of the word. Monday (M), Tuesday (T), Wednesday (W), and Friday (F) all involve circling that handshape in the air. Exceptions: Sunday is a 'Praise' motion (hands up/down). Thursday involves an 'H' (for tHursday) circling to distinguish it from Tuesday.",
+        "media_type": "video",
+        "media_placeholder_note": "TODO: Loop showing difference between 'T' circle for Tuesday and 'H' circle for Thursday."
+      },
+      {
+        "id": "4-3",
+        "title": "Numbers 1-10 (Palm Orientation)",
+        "content": "Counting in ASL has a strict rule regarding palm orientation. For numbers 1 through 5, your palm must face IN (towards your chest). For numbers 6 through 9, your palm turns OUT (towards the viewer). If you sign '2' with your palm facing out, it actually means the letter 'V', not the number 2.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Image of Left hand showing '2' (Palm In) and Right hand showing 'V' (Palm Out)."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "title": "ASL Course 5: Syntax & Structure",
+    "description": "Stop thinking in English order! ASL has its own unique sentence structure. This course introduces 'Topic-Comment' structure to help you sound fluent.",
+    "modules": [
+      {
+        "id": "5-1",
+        "title": "Topic-Comment Structure",
+        "content": "In English, we say 'I am washing the car'. In ASL, we usually establish the Topic first, and then make a Comment about it. The structure becomes: 'The Car, I wash.' This ensures the listener knows what you are talking about before you explain what is happening to it.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Flowchart: [Topic: CAR] -> [Subject: ME] -> [Verb: WASH]."
+      },
+      {
+        "id": "5-2",
+        "title": "Object-Subject-Verb (OSV)",
+        "content": "Building on Topic-Comment, simple sentences often follow Object-Subject-Verb. English: 'I like the book.' ASL: 'BOOK, I LIKE.' While signing the topic (BOOK), raise your eyebrows to establish it. Then, nod your head while signing the comment (I LIKE).",
+        "media_type": "video",
+        "media_placeholder_note": "TODO: Video of signer demonstrating 'Coffee, I need' with pause/eyebrows raised after 'Coffee'."
+      },
+      {
+        "id": "5-3",
+        "title": "Negation",
+        "content": "How do you say 'I don't want that'? You don't always need a separate sign for 'Not.' You can simply sign 'WANT' while shaking your head side-to-side. This is called 'Negative Incorporation.' However, for emphasis, you can use the sign 'NOT' (thumb under chin, flicking forward) at the end of the sentence.",
+        "media_type": "image",
+        "media_placeholder_note": "TODO: Split image showing 'Head Shake' (Negation) vs 'Head Nod' (Affirmation)."
+      }
+    ]
+  }
+]
