@@ -1,7 +1,9 @@
-import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter, TextInput, Keyboard} from 'react-native';
+import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter, TextInput, Keyboard, DeviceEventEmitter} from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, {Rect, Path, Defs, G, ClipPath} from 'react-native-svg';
+
+import {initTTS,speak, stopTTS, VOICE_KEYS} from './TTShandler';
 
 const HandsIcon = () => (
   <Svg width="26" height="26" fill="none">
@@ -90,32 +92,26 @@ const SettingsIcon = () =>(
 )
 
 const SpeakIcon = () => (
-  <Svg width="38" height="38">
+  <Svg width="35" height="35">
     <Path
       fill="#565656"
-      stroke="#565656"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M16.23 17.083a5.979 5.979 0 1 0 0-11.957 5.979 5.979 0 0 0 0 11.957Z"
+      d="M13.5 18c-1.65 0-3.063-.587-4.238-1.762C8.087 15.063 7.5 13.65 7.5 12c0-1.65.588-3.063 1.762-4.237C10.438 6.588 11.85 6 13.5 6c1.65 0 3.063.588 4.238 1.763C18.913 8.938 19.5 10.35 19.5 12s-.587 3.063-1.762 4.238C16.563 17.413 15.15 18 13.5 18Zm-12 9v-1.2c0-.85.219-1.631.657-2.343A4.394 4.394 0 0 1 3.9 21.825a22.24 22.24 0 0 1 4.725-1.743 20.717 20.717 0 0 1 9.75 0c1.6.389 3.175.97 4.725 1.743a4.378 4.378 0 0 1 1.744 1.632c.438.713.657 1.494.656 2.343V27c0 .825-.294 1.532-.88 2.12a2.882 2.882 0 0 1-2.12.88h-18a2.888 2.888 0 0 1-2.118-.88A2.895 2.895 0 0 1 1.5 27Z"
     />
     <Path
       stroke="#565656"
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      d="M28.188 6.833s1.921 3.844 0 8.542m5.979-11.958s3.843 6.918 0 15.375"
-    />
-    <Path
-      fill="#565656"
-      stroke="#565656"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3.417 34.85v1.025h25.625V34.85c0-3.827 0-5.74-.745-7.202a6.833 6.833 0 0 0-2.986-2.986c-1.463-.745-3.376-.745-7.203-.745H14.35c-3.827 0-5.74 0-7.202.744a6.833 6.833 0 0 0-2.986 2.987c-.745 1.462-.745 3.375-.745 7.202Z"
+      d="M24 7.617s1.472 2.944 0 6.543M28.58 5s2.944 5.3 0 11.777"
     />
   </Svg>
 )
+
+const SpeakCancelIcon = () => (
+  <Svg width="35" height="35" viewBox="0 0 35 35" fill="none">
+    <Rect x="10" y="10" width="15" height="15" rx="2" fill="#565656" />
+  </Svg>
+);
 
 const DropdownUpIcon = () =>(
   <Svg width = "24" height="17">
@@ -137,7 +133,7 @@ const DropdownDownIcon = () =>(
 
 const {width:SCREEN_WIDTH} = Dimensions.get('window');
 
-const BottomNavBar = ({navigation, onCameraToggle}) => {
+const BottomNavBar = ({navigation, handleSpeakPress, isSpeaking}) => {
   const width = SCREEN_WIDTH;
   const height = 90; 
   const cornerRadius = 25;
@@ -202,8 +198,8 @@ const BottomNavBar = ({navigation, onCameraToggle}) => {
           backgroundColor: '#E0E0E0',
           alignItems: 'center', 
           justifyContent: 'center'
-        }} onPress={onCameraToggle}>
-          <SpeakIcon/>
+        }} onPress={handleSpeakPress}>
+          {isSpeaking? <SpeakCancelIcon/> : <SpeakIcon/>}
         </TouchableOpacity>    
     </View>
   );
@@ -211,18 +207,60 @@ const BottomNavBar = ({navigation, onCameraToggle}) => {
 
 export default function Ttsmode({navigation}) {
   const [dropDownExpanded,setDropDownExpanded] = useState(false);
-  const [selectedVoice,setSelectedVoice]=useState('Voice Models');
+  const [selectedVoice,setSelectedVoice]=useState(VOICE_KEYS[0]);
 
-  const voiceOptions = [
-    'Charlie',
-    'Samantha',
-    'Chelsea',
-    'John'
-  ];
+  const [inputText,setInputText] = useState('');
+  const [isReady,setIsReady] = useState(false);
+  const [isSpeaking,setIsSpeaking]=useState(false);
+
+  useEffect(()=>{
+    const setup = async () =>{
+      const success = await initTTS(selectedVoice);
+      setIsReady(success);
+    };
+    setup();
+    
+    const unsubscribeBlur = navigation.addListener('blur', async()=>{
+      console.log("Leaving TTS mode, stopping TTS");
+      await stopTTS();
+      setIsSpeaking(false);
+    });
+    return() =>{
+      speechListener.remove();
+      unsubscribeBlur();
+    };
+  }, [navigation]);
+
+  const handleSpeakPress = async () =>{
+    if(!isReady){
+      Alert.alert("Hold up", "Model still loading...");
+      return;
+    }
+    if(!inputText){
+      Alert.alert("Empty","Please type something first");
+      return;
+    }
+    if(isSpeaking){
+      await stopTTS();
+      setIsSpeaking(false);
+    }else{
+      setIsSpeaking(true);
+      await speak(inputText);
+    }
+  };
 
   const handleSelectVoice = (voice)=>{
     setSelectedVoice(voice);
     setDropDownExpanded(false);
+
+    if(voice !== selectedVoice){
+      setIsReady(false);
+      
+      setTimeout(async ()=>{
+        const success = await initTTS(voice);
+        setIsReady(success);
+      }, 100);
+    }
   };
 
   const toggleDropdown = () =>{
@@ -238,7 +276,8 @@ export default function Ttsmode({navigation}) {
         </View>
         <TextInput style={styles.inputBox}
         multiline={true}
-        placeholder="Type your text here"/>
+        placeholder={isReady ? "Type your text here..." : "Loading model..."}
+        value={inputText} onChangeText={setInputText}/>
       </View>
 
       <View style={styles.modelSelection}>
@@ -251,14 +290,14 @@ export default function Ttsmode({navigation}) {
         
         {dropDownExpanded && (
         <View style={styles.dropdownContainer}>
-          {voiceOptions.map((option,index)=>(
+          {VOICE_KEYS.map((option,index)=>(
             <TouchableOpacity
             key={index}
             style={styles.dropdownOption}
             onPress={()=>handleSelectVoice(option)}
             >
               <Text style={styles.dropdownText}>{option}</Text>
-              {index < voiceOptions.length - 1 && (
+              {index < VOICE_KEYS.length - 1 && (
                 <View style={styles.divider}></View>
               )}
             </TouchableOpacity>
@@ -268,9 +307,9 @@ export default function Ttsmode({navigation}) {
       </View>
 
       <View style={styles.textCounter}>
-        <Text style={styles.textCounterText}>0/5000</Text>
+        <Text style={styles.textCounterText}>{inputText.length}/5000</Text>
       </View>
-      <BottomNavBar navigation={navigation}/>
+      <BottomNavBar navigation={navigation} handleSpeakPress={handleSpeakPress} isSpeaking={isSpeaking}/>
     </SafeAreaView>
   )
 }
