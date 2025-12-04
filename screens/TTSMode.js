@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter, TextInput, Keyboard, DeviceEventEmitter} from 'react-native';
+import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter, TextInput, Keyboard, DeviceEventEmitter, ScrollView} from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, {Rect, Path, Defs, G, ClipPath} from 'react-native-svg';
@@ -131,7 +131,10 @@ const DropdownDownIcon = () =>(
   </Svg>
 )
 
-const {width:SCREEN_WIDTH} = Dimensions.get('window');
+const {width:SCREEN_WIDTH, height:SCREEN_HEIGHT} = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH * 0.9;
+const PREVIEW_WIDTH = CARD_WIDTH;
+const PREVIEW_HEIGHT= CARD_WIDTH;
 
 const BottomNavBar = ({navigation, handleSpeakPress, isSpeaking}) => {
   const width = SCREEN_WIDTH;
@@ -226,7 +229,6 @@ export default function Ttsmode({navigation}) {
       setIsSpeaking(false);
     });
     return() =>{
-      speechListener.remove();
       unsubscribeBlur();
     };
   }, [navigation]);
@@ -269,7 +271,14 @@ export default function Ttsmode({navigation}) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.mainContainer}>
+      <ScrollView contentContainerStyle={{
+          paddingBottom:120,
+          alignItems:"center",
+          paddingTop:20
+      }}
+      showsVerticalScrollIndicator={false}
+      >
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.label}>TTS Mode</Text>
@@ -284,7 +293,7 @@ export default function Ttsmode({navigation}) {
         <View style={styles.currentModel}>
           <TouchableOpacity style={styles.dropdown} onPress={toggleDropdown}>
             <Text style={styles.dropdownText}>{selectedVoice}</Text>
-            {dropDownExpanded ? <DropdownUpIcon/> : <DropdownDownIcon/>}
+            {dropDownExpanded ? <DropdownDownIcon/> : <DropdownUpIcon/>}
           </TouchableOpacity>
         </View>
         
@@ -309,17 +318,25 @@ export default function Ttsmode({navigation}) {
       <View style={styles.textCounter}>
         <Text style={styles.textCounterText}>{inputText.length}/5000</Text>
       </View>
-      <BottomNavBar navigation={navigation} handleSpeakPress={handleSpeakPress} isSpeaking={isSpeaking}/>
+      </ScrollView>
+      <View style={styles.absoluteNav}>
+        <BottomNavBar navigation={navigation} handleSpeakPress={handleSpeakPress} isSpeaking={isSpeaking}/>
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: "#C9C2B5",
-    alignItems: 'center',
-    paddingVertical: 15,
+  },
+  absoluteNav:{
+    position:"absolute",
+    bottom:0,
+    left:0,
+    right:0,
+    zIndex:100,
   },
   card:{
     marginTop:12,
@@ -383,11 +400,17 @@ const styles = StyleSheet.create({
   },
   modelSelection:{
     position:"absolute",
-    top:670,
+    // top:670,
+    // right:50,
+    // width:125,
+    // zIndex:100,
+    // elevation:10,
+
+    bottom:200,
     right:50,
     width:125,
-    zIndex:100,
-    elevation:10,
+    zIndex:300,
+    elevation:20,
   },
   currentModel:{
     backgroundColor:"#D9D9D9",
