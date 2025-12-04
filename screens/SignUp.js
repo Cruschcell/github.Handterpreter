@@ -53,7 +53,7 @@ const Illustration = () =>(
 )
 
 const Wave = () => (
-  <View style={styles.waveContainer}>
+  <View style={styles.waveContainer} pointerEvents="none">
     <Svg width={width} height={212} fill="none" >
       <Path
         fill="#C9C2B5"
