@@ -25,6 +25,7 @@ export default function Welcomepage({navigation}) {
         <Image source={require('../assets/blackman.png')}
         style={styles.blackmanInCorner}
         resizeMode="contain"
+        pointerEvents="none"
         />
       </View>
     </SafeAreaView>
@@ -86,8 +87,9 @@ const styles = StyleSheet.create({
     position:"absolute",
     width:350,
     height:370,
-    left:77,
-    top:520,
+    bottom:-50,
+    right:-50,
+    zIndex:-1,
     textShadowOffset:{width:0,height:4},
     textShadowRadius:4,
   }
