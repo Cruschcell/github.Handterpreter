@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, ScrollView, TextInput, Alert} from 'react-native'
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, ScrollView, TextInput, Alert, KeyboardAvoidingView, Platform} from 'react-native'
 import {SafeAreaView} from 'react-native-safe-area-context';
 import React, {useState, useEffect} from 'react'
 import Svg, {Path} from 'react-native-svg';
@@ -138,6 +138,12 @@ export default function Login({navigation}) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView contentContainerStyle={{paddingBottom:100}}
+      showsVerticalScrollIndicator={false}
+      >
       <TouchableOpacity style={styles.backButton} onPress={()=>navigation.navigate('Welcomepage')}>
         <View style={{marginTop:6}}>
           <BackArrowIcon/>
@@ -193,7 +199,9 @@ export default function Login({navigation}) {
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
-      </View>   
+      </View> 
+      </ScrollView>
+      </KeyboardAvoidingView>
       <Wave/>
     </SafeAreaView>
   )
@@ -249,7 +257,8 @@ const styles = StyleSheet.create({
   passwordInput:{
     flex:1,
     height:"100%",
-    fontSize:16
+    fontSize:16,
+    color:"#000"
   },
   loginButton:{
     paddingVertical:20,
