@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, Alert, TouchableOpacity, Dimensions, NativeModules, NativeEventEmitter, ScrollView} from 'react-native';
 import { useCameraPermission, useCameraDevice, useFrameProcessor, Camera, VisionCameraProxy } from 'react-native-vision-camera';
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Circle, Line, Group, vec, Paint } from "@shopify/react-native-skia";
 import Svg, {Rect, Path, Defs, G, ClipPath} from 'react-native-svg';
+import {useTensorflowModel} from 'react-native-fast-tflite';
 
 const { HandLandmarks } = NativeModules;
 const handLandmarksEmitter = new NativeEventEmitter(HandLandmarks);
@@ -18,6 +19,8 @@ const HAND_CONNECTIONS = [
     [13, 14], [14, 15], [15, 16],           // Ring
     [17, 18], [18, 19], [19, 20]            // Pinky
 ];
+
+const ALPHABET = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","del","nothing","space"];
 
 const HandsIcon = () => (
   <Svg width="26" height="26" fill="none">
@@ -114,7 +117,10 @@ const CamIcon = () =>(
     </Svg>
 )
 
-const {width:SCREEN_WIDTH} = Dimensions.get('window');
+const {width:SCREEN_WIDTH, height:SCREEN_HEIGHT} = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH * 0.9;
+const PREVIEW_WIDTH = CARD_WIDTH;
+const PREVIEW_HEIGHT= CARD_WIDTH;
 
 const BottomNavBar = ({navigation, onCameraToggle}) => {
   const width = SCREEN_WIDTH;
@@ -196,10 +202,101 @@ export default function Home({navigation}) {
     const [handData, setHandData] = useState([]); 
     const [isHandLandmarkerInitialized, setIsHandLandmarkerInitialized] = useState(false);
     
+    const [currentLetter, setCurrentLetter]=useState("");
+    const plugin = useTensorflowModel(require('../assets/models/hand_sign_classifier.tflite'));
+    const lastPredictionRef = useRef("");
+    const consecutiveFramesRef = useRef(0);
+    const [sentence,setSentence] = useState("");
+    const lastOutputRef = useRef("");
+
     const PREVIEW_WIDTH = 350;
     const PREVIEW_HEIGHT = 350;
 
     const camera = useRef(null);
+
+    // Recognition part
+    useEffect(()=>{
+        const subscription = handLandmarksEmitter.addListener(
+            'onHandLandmarksDetected',
+            (event) => {
+                setHandData(event.landmarks);
+
+                if (plugin.model && event.landmarks && event.landmarks.length > 0) {
+                    const hand = event.landmarks[0];
+                    const inputData = [];
+                    const wrist = hand[0];
+
+                    let maxDistance = 0;
+                    for (let i = 0; i < 21; i++) {
+                        let p = hand[i];
+                        let dist = Math.sqrt(Math.pow(p.x - wrist.x, 2) + Math.pow(p.y - wrist.y, 2));
+                        if (dist > maxDistance) maxDistance = dist;
+                    }
+                    if (maxDistance === 0) maxDistance = 1;
+
+                    for (let i = 0; i < 21; i++) {
+                        let p = hand[i];
+                        inputData.push((p.x - wrist.x) / maxDistance);
+                        inputData.push((p.y - wrist.y) / maxDistance);
+                        inputData.push((p.z || 0) / maxDistance);
+                    }
+
+                    const inputTensor = new Float32Array(inputData);
+                    const output = plugin.model.runSync([inputTensor]);
+                    const probabilities = output[0];
+
+                    let maxScore = -1;
+                    let maxIndex = -1;
+
+                    for (let i = 0; i < probabilities.length; i++) {
+                        if (probabilities[i] > maxScore) {
+                            maxScore = probabilities[i];
+                            maxIndex = i;
+                        }
+                    }
+
+                    const predictedLetter = ALPHABET[maxIndex];
+
+                    if (maxScore > 0.5 && predictedLetter !== "nothing") {
+                        
+                        setCurrentLetter(predictedLetter);
+
+                        if (predictedLetter === lastPredictionRef.current) {
+                            consecutiveFramesRef.current += 1;
+                        } else {
+                            lastPredictionRef.current = predictedLetter;
+                            consecutiveFramesRef.current = 1;
+
+                            lastOutputRef.current = ""; 
+                        }
+
+                        if (consecutiveFramesRef.current > 5) {
+                            
+                            if ((predictedLetter === "space" || predictedLetter === "del") && consecutiveFramesRef.current % 10 === 0) {
+                                if (predictedLetter === "del") {
+                                    setSentence(prev => prev.slice(0, -1));
+                                } else {
+                                    setSentence(prev => prev + " ");
+                                }
+                            }
+                            
+                            else if (predictedLetter !== lastOutputRef.current) {
+                                if (predictedLetter !== "space" && predictedLetter !== "del") {
+                                    setSentence(prev => prev + predictedLetter);
+                                    lastOutputRef.current = predictedLetter;
+                                }
+                            }
+                        }
+                    } else {
+                
+                        lastOutputRef.current = ""; 
+                        consecutiveFramesRef.current = 0;
+                    }
+                }
+            }
+        );
+        return () => subscription.remove();
+    }, [plugin.model]);
 
     useEffect(() => {
         const setup = async () => {
@@ -216,7 +313,6 @@ export default function Home({navigation}) {
         const subscription = handLandmarksEmitter.addListener(
             'onHandLandmarksDetected',
             (event) => {
-                // Update state with new coordinates to trigger a Canvas redraw
                 setHandData(event.landmarks);
             }
         );
@@ -240,9 +336,15 @@ export default function Home({navigation}) {
     };
 
     const transformPoint = (p)=>{
-        const rotatedX = 1 - p.y;
-        const rotatedY = p.x;
-        return vec(rotatedX * PREVIEW_WIDTH, rotatedY * PREVIEW_HEIGHT);
+        let rotatedX, rotatedY;
+        if(cameraPosition==='front'){
+            rotatedX = 1-p.y;
+            rotatedY = 1-p.x;
+        }else{
+            rotatedX = 1-p.y;
+            rotatedY = p.x;
+        }
+        return vec(rotatedX*PREVIEW_WIDTH,rotatedY*PREVIEW_HEIGHT);
     };
 
     // 2. Skeleton Renderer
@@ -250,20 +352,27 @@ export default function Home({navigation}) {
         if (!handData || handData.length === 0) return null;
 
         return handData.map((hand, handIndex) => {
-            // Convert normalized coordinates (0-1) to pixel coordinates (350x350)
             const points = hand.map(p=>transformPoint(p));            
             return (
                 <Group key={handIndex}>
-                    <Paint color="#00FF00" strokeWidth={2} style="stroke" />
                     {HAND_CONNECTIONS.map(([start, end], i) => (
                         <Line
                             key={`bone-${i}`}
                             p1={points[start]}
                             p2={points[end]}
+                            color="#00FF00"
+                            strokeWidth={2}
+                            style="stroke"
                         />
                     ))}
                     {points.map((p, i) => (
-                        <Circle key={`joint-${i}`} cx={p.x} cy={p.y} r={4} color="red" style="fill" />
+                        <Circle 
+                        key={`joint-${i}`} 
+                        cx={p.x} 
+                        cy={p.y} 
+                        r={4} 
+                        color="#FF0000" 
+                        style="fill" />
                     ))}
                 </Group>
             );
@@ -272,7 +381,7 @@ export default function Home({navigation}) {
 
     if (!hasPermission) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView>
                 <Text>Camera Permission Required</Text>
                 <TouchableOpacity onPress={handlePermissionRequest}><Text>Grant</Text></TouchableOpacity>
             </SafeAreaView>
@@ -281,8 +390,15 @@ export default function Home({navigation}) {
     if (device == null) return <View><Text>No Camera Device</Text></View>;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.mainContainer}>
             <StatusBar barStyle="dark-content" />
+            <ScrollView contentContainerStyle={{
+                paddingBottom:120,
+                alignItems:"center",
+                paddingTop:20
+            }}
+            showsVerticalScrollIndicator={false}
+            >
             <View style={styles.card}>
                 <View style={[styles.cameraWrapper, { width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT }]}>
                     {/* LAYER 1: The Camera */}
@@ -309,23 +425,36 @@ export default function Home({navigation}) {
                 <View style={styles.outputContainer}>
                     {/* <Text >{isHandLandmarkerInitialized ? "System Ready" : "Initializing..."}</Text>
                     <Text >Hands detected: {handData ? handData.length : 0}</Text> */}
-                    <Text>This is where the outputted text goes...</Text>
+                    <Text style={{fontSize:14, color:"#000", marginBottom:5}}>
+                        {currentLetter}
+                    </Text>
+                    <Text style={{fontSize:30, color:"#000"}}>
+                        {sentence}
+                    </Text>
                 </View>
                 <View style={styles.cardFooter}>
                     <Text style={styles.label}>Text Output</Text>
                 </View>
             </View>
+        </ScrollView>
+        <View style={styles.absoluteNav}>
             <BottomNavBar navigation={navigation} onCameraToggle={toggleCamera}/>
+        </View>
         </SafeAreaView>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
+    mainContainer: {
         flex: 1,
         backgroundColor: "#C9C2B5",
-        alignItems: 'center',
-        paddingVertical: 15,
+    },
+    absoluteNav:{
+        position:"absolute",
+        bottom:0,
+        left:0,
+        right:0,
+        zIndex:100,
     },
     card:{
         marginTop:12,
