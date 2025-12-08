@@ -1,8 +1,32 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Image } from 'react-native'
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import CourseData from './CourseData';
+import CourseData from './CourseData.json';
+
+const localAssetMap = {
+  "Hero_Handshape.png": require('../assets/Hero_Handshape.png'),
+  "Hero_Expressions.png": require('../assets/Hero_Expressions.png'),
+  "Hero_Family.png": require('../assets/Hero_Family.png'),
+  "Hero_Time.png": require('../assets/Hero_Time.png'),
+  "Hero_Syntax.png": require('../assets/Hero_Syntax.png'),
+  "AST.png": require('../assets/AST.png'),
+  "KP.png": require('../assets/KP.png'),
+  "Where.png": require('../assets/Where.png'),
+  "Hungry.png": require('../assets/Hungry.png'),
+  "NiceMeet.png": require('../assets/NiceMeet.png'),
+  "MaleForeheadFemaleChin.png": require('../assets/MaleForeheadFemaleChin.png'),
+  "GrandmotherMother.png": require('../assets/GrandmotherMother.png'),
+  "Friend.png": require('../assets/Friend.png'),
+  "PastPresent.png": require('../assets/PastPresent.png'),
+  "TuesdayThursday.png": require('../assets/TuesdayThursday.png'),
+  "V2.png": require('../assets/V2.png'),
+  "TopicCarSubjectMeVerbWash.png": require('../assets/TopicCarSubjectMeVerbWash.png'),
+  "NegationAffirmation.png": require('../assets/NegationAffirmation.png'),
+  "SigningSpace.png": require('../assets/SigningSpace.png'),
+  "OSV.png": require('../assets/OSV.png'),
+
+};
 
 const BackArrowIcon = () => (
     <Svg width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -47,7 +71,7 @@ export default function CoursePage({ route, navigation }) {
   const [course, setCourse] = useState(null);
 
   useEffect(() => {
-    const targetId = route.params.courseId;
+    const targetId = route.params?.courseId;
     if (CourseData) {
       const foundCourse = CourseData.find(c => c.id === targetId);
       setCourse(foundCourse);
@@ -63,6 +87,8 @@ export default function CoursePage({ route, navigation }) {
     )
   }
 
+  const heroImage = course.heroImageFileName ? localAssetMap[course.heroImageFileName] : null;
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 24 }}>
@@ -77,7 +103,15 @@ export default function CoursePage({ route, navigation }) {
         <Text style={styles.headerTitle}>{course.title}</Text>
 
         <View style={styles.TopImageContainer}>
-          <Text style={styles.placeholder}>[ Hero Image ]</Text>
+          {heroImage ? (
+             <Image 
+                source={heroImage} 
+                style={styles.heroImageStyle} 
+                resizeMode="cover" 
+              />
+          ) : (
+             <Text style={styles.placeholder}>[ Hero Image ]</Text>
+          )}
         </View>
 
         <Text style={styles.sectionHeader}>About this course</Text>
@@ -87,29 +121,38 @@ export default function CoursePage({ route, navigation }) {
 
         <Text style={styles.sectionHeader}>Course Content</Text>
 
-        {course.modules && course.modules.map((module, index) => (
-          <View key={module.id} style={styles.moduleContainer}>
-            
-            <View style={styles.moduleHeaderRow}>
-              <View style={styles.moduleNumberBadge}>
-                <Text style={styles.moduleNumberText}>{index + 1}</Text>
+        {course.modules && course.modules.map((module, index) => {
+          const resolvedImage = module.imageFileName ? localAssetMap[module.imageFileName] : null;
+
+          return (
+            <View key={module.id} style={styles.moduleContainer}>
+              
+              <View style={styles.moduleHeaderRow}>
+                <View style={styles.moduleNumberBadge}>
+                  <Text style={styles.moduleNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.moduleTitle}>{module.title}</Text>
               </View>
-              <Text style={styles.moduleTitle}>{module.title}</Text>
-            </View>
 
-            <View style={styles.mediaPlaceholder}>
-              {module.media_type === 'video' ? (
-                <Text>Video</Text>
-              ) : (
-                <Text>Image</Text>
-              )}
-              <Text style={styles.placeholderNote}>{module.media_placeholder_note}</Text>
-            </View>
+              <View style={styles.mediaContainer}>
+                {resolvedImage ? (
+                  <Image 
+                    source={resolvedImage} 
+                    style={styles.moduleImage} 
+                    resizeMode="contain" 
+                  />
+                ) : (
+                  <View style={styles.placeholderInner}>
+                     <Text style={styles.placeholderNote}>{module.media_placeholder_note || "No Image Available"}</Text>
+                  </View>
+                )}
+              </View>
 
-            <Text style={styles.bodyText}>{module.content}</Text>
-          
-          </View>
-        ))}
+              <Text style={styles.bodyText}>{module.content}</Text>
+            
+            </View>
+          );
+        })}
 
       </ScrollView>
 
@@ -159,7 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 14,
   },
-  
   headerTitle: {
     fontSize: 26,
     fontWeight: '700',
@@ -176,6 +218,11 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     borderWidth: 1,
     borderColor: '#D1D1D1',
+    overflow: 'hidden', 
+  },
+  heroImageStyle: {
+    width: '100%',
+    height: '100%',
   },
   placeholder: {
     color: '#888',
@@ -201,7 +248,6 @@ const styles = StyleSheet.create({
     marginVertical: 25,
   },
   
-  // --- Module Styling ---
   moduleContainer: {
     backgroundColor: '#F4F3F0',
     borderRadius: 12,
@@ -233,7 +279,7 @@ const styles = StyleSheet.create({
     color: '#111',
     flex: 1,
   },
-  mediaPlaceholder: {
+  mediaContainer: {
     width: '100%',
     height: 160,
     backgroundColor: '#EBE9E4',
@@ -241,9 +287,21 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden', 
+  },
+  moduleImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#CCC',
     borderStyle: 'dashed',
+    borderRadius: 8,
   },
   placeholderNote: {
     fontSize: 12,

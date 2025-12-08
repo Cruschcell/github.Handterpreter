@@ -4,6 +4,14 @@ import Svg, {Rect, Path, Defs, G, ClipPath} from 'react-native-svg';
 import {SafeAreaView} from 'react-native-safe-area-context'
 import CourseData from './CourseData';
 
+const localHeroMap = {
+  "Hero_Handshape.png": require('../assets/Hero_Handshape.png'),
+  "Hero_Expressions.png": require('../assets/Hero_Expressions.png'),
+  "Hero_Family.png": require('../assets/Hero_Family.png'),
+  "Hero_Time.png": require('../assets/Hero_Time.png'),
+  "Hero_Syntax.png": require('../assets/Hero_Syntax.png'),
+};
+
 const HandsIcon = () => (
   <Svg width="26" height="26" fill="none">
     <Path
@@ -124,21 +132,29 @@ export default function LearningHub({navigation}) {
       <Text style={styles.headerText}>Learning Hub</Text>
       <ScrollView style={styles.courseList} contentContainerStyle={{paddingBottom:260}}>
         <Text style={styles.listHeaderText}>Available Courses</Text>
-        {CourseData.map((item) => (
-            <TouchableOpacity 
-                key={item.id} 
-                style={styles.courseContainer} 
-                onPress={() => navigation.navigate('CoursePage', { courseId: item.id })}
-            >
-                <View style={styles.textContainer}>
-                    <Text style={styles.courseTitle}>{item.title}</Text>
-                    <Text style={styles.courseDescription} numberOfLines={8}>
-                        {item.description}
-                    </Text>
-                </View>
-                <Image source={require('../assets/ASLBlackGuy.png')} style={styles.courseImage}/>
-            </TouchableOpacity>
-        ))}
+        {CourseData.map((item) => {
+            const heroSource = item.heroImageFileName 
+                ? localHeroMap[item.heroImageFileName] 
+                : require('../assets/ASLBlackGuy.png'); 
+
+            return (
+                <TouchableOpacity 
+                    key={item.id} 
+                    style={styles.courseContainer} 
+                    onPress={() => navigation.navigate('CoursePage', { courseId: item.id })}
+                >
+                    <View style={styles.textContainer}>
+                        <Text style={styles.courseTitle}>{item.title}</Text>
+                        <Text style={styles.courseDescription} numberOfLines={8}>
+                            {item.description}
+                        </Text>
+                    </View>
+                    
+                    <Image source={heroSource} style={styles.courseImage}/>
+                    
+                </TouchableOpacity>
+            )
+        })}
       </ScrollView>
       <BottomNavBar navigation={navigation}/>
     </SafeAreaView>
@@ -179,17 +195,17 @@ const styles = StyleSheet.create({
     marginTop:20,
   },
   courseContainer:{
-    backgroundColor:"#E7E6E1",
+    backgroundColor: "#E7E6E1",
     marginTop: 30,
-    marginHorizontal:20,
-    width:370,
-    height:180,
+    alignSelf: "center", 
+    width: SCREEN_WIDTH - 40,
+    minHeight: 180, 
     borderRadius: 15,
-    flexDirection: 'row', 
+    flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 15,
     shadowColor: "#000",
-    shadowOffset: {width: 0,height: 4, },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.30,
     shadowRadius: 4.65,
     elevation: 8,
@@ -206,15 +222,15 @@ const styles = StyleSheet.create({
     textAlign:"left",
   },
   courseDescription:{
-    fontSize:10,
-    color:"#555",
-    lineHeight:12,
-    marginBottom:10,
-    marginRight:10,
-    textAlign:"justify",
+    fontSize: 12, 
+    color: "#555",
+    lineHeight: 16, 
+    marginBottom: 10,
+    marginRight: 10,
+    textAlign: "left",
   },
   courseImage:{
-    width: 145,
+    width: 120,
     height: 95,
     borderRadius: 5,
     resizeMode: "cover",
