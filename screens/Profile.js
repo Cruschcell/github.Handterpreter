@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {useFocusEffect} from '@react-navigation/native'
 import Svg, { Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -144,25 +145,27 @@ export default function Profile({ navigation }) {
 
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    const fetchUserData = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
         try {
-            const userJson = await AsyncStorage.getItem('currentUser');
-            if (userJson) {
-                const user = JSON.parse(userJson);
-                setUserData(prev => ({
-                    ...prev,
-                    ...user,
-                    password: user.password || prev.password
-                }));
-            }
+          const userJson = await AsyncStorage.getItem('currentUser');
+          if (userJson) {
+            const user = JSON.parse(userJson);
+            setUserData(prev => ({
+              ...prev,
+              ...user,
+              password: user.password || prev.password
+            }));
+          }
         } catch (error) {
-            console.log("Error fetching user data", error);
+          console.log("Error fetching user data", error);
         }
-    };
+      };
 
-    fetchUserData();
-  }, []);
+      fetchUserData();
+    }, [])
+  );
 
   const updateStorage = async (newUserData) => {
     try {
@@ -354,8 +357,6 @@ export default function Profile({ navigation }) {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeader}>Activity</Text>
           <View style={styles.card}>
-            <MenuRow label="Courses Finished" onPress={() => {}} />
-            <MenuRow label="Courses Currently Taking" onPress={() => {}} />
             <MenuRow label="Logs" onPress={() => navigation.navigate('Logs')} />
             <MenuRow label="Sign Out" onPress={handleSignOut} isLast={true} /> 
           </View>
