@@ -274,11 +274,13 @@ export default function Home({ navigation }) {
                     if (consecutiveFramesRef.current > 2) {
                         
                         // Handle Space/Del
-                        if ((predictedLabel === "space" || predictedLabel === "del") && consecutiveFramesRef.current % 5 === 0) {
-                            if (predictedLabel === "del") {
-                                setSentence(prev => prev.slice(0, -1));
-                            } else {
-                                setSentence(prev => prev + " ");
+                        if(predictedLabel === "space" || predictedLabel === "del"){
+                            if(consecutiveFramesRef.current % 5 === 0){
+                                if(predictedLabel === "del"){
+                                    setSentence(prev=>prev.slice(0,-1));
+                                }else{
+                                    setSentence(prev=>prev+" ");
+                                }
                             }
                         }
                         // Handle Letters/Words
